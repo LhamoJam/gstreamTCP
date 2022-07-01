@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding:utf-8 -*-
 """
-BlueRov video capture class
+Rov video capture class
 """
 
 import cv2
@@ -150,6 +150,13 @@ if __name__ == '__main__':
     # Create the video object
     # Add port= if is necessary to use a different one
     video = Video(4777)
+    # 创建socket
+    tcp_client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    # 目的信息    服务器IP
+    server_ip = "127.0.0.1"
+    server_port = 8088
+    # 链接服务器
+    tcp_client_socket.connect((server_ip, server_port))
 
     print('Initialising stream...')
     waited = 0
@@ -159,81 +166,27 @@ if __name__ == '__main__':
         cv2.waitKey(30)
     print('\nSuccess!\nStarting streaming - press "q" to quit.')
 
-
-    # rtmp = 'rtmp://127.0.0.1:1935/live/testlive'
-    # rtmp = 'udp://127.0.0.1:1234'
-    #
-    #
-    # command = ['ffmpeg',
-    #            '-y', '-an',
-    #            '-f', 'rawvideo',
-    #            '-vcodec', 'rawvideo',
-    #            '-pix_fmt', 'bgr24',
-    #            '-s', '1920x1080',
-    #            '-r', '14',
-    #            '-i', '-',
-    #            '-c:v', 'libx264',
-    #            '-pix_fmt', 'yuv420p',
-    #            '-preset', 'ultrafast',
-    #            '-fflags','nobuffer',
-    #            '-analyzeduration','500000',
-    #            '-f', 'flv',
-    #            rtmp]
-    # pipe = subprocess.Popen(command, shell=False, stdin=subprocess.PIPE)
-    # while cap.isOpened():
-    #     success, frame = cap.read()
-    #     if success:
-    #         if cv2.waitKey(1) & 0xFF == ord('q'):
-    #             break
-    #         pipe.stdin.write(frame.tostring())
-    # cap.release()
-    # pipe.terminate()
-
-    # 创建socket
-    tcp_client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    # 目的信息    服务器IP
-    server_ip = "127.0.0.1"
-    server_port = 8088
-    # 链接服务器
-    tcp_client_socket.connect((server_ip, server_port))
-    # 海康网络监控相机读取视频流 1280*720 RGB uint8
-    # capture = cv2.VideoCapture('rtsp://用户名:密码@相机IP/Streaming/Channels/101')
-
     while True:
-        if video.frame_available():
-            frame = video.frame()
+        try:
+            if video.frame_available():
+                frame = video.frame()
 
-            # 按q结束
-            if cv2.waitKey(1) & 0xff == ord('q'):
-                # 释放所有资源
-                cv2.destroyAllWindows()
-                capture.release()
-                tcp_client_socket.close()
-                print('Video Reading & TCP Sending Stopped!')
-                break
+                # 按q结束
+                if cv2.waitKey(1) & 0xff == ord('q'):
+                    # 释放所有资源
+                    cv2.destroyAllWindows()
+                    # capture.release()
+                    tcp_client_socket.close()
+                    print('Video Reading & TCP Sending Stopped!')
+                    break
 
-            # 视频流显示
-            cv2.imshow('camera', frame)
-            cv2.waitKey(1)
-            # 图片发送
-            tcp_client_socket.send(frame.tobytes())
-            # 等待回传信息，接收到才能进行下一次发送，具有同步功能
-            recv_data = tcp_client_socket.recv(1024)
-            # print('接收到回传信息:', recv_data.decode('gbk'))
-
-        # # Wait for the next frame to become available
-        # if video.frame_available():
-        #     # Only retrieve and display a frame if it's new
-        #     frame = video.frame()
-        #     cv2.imshow('frame', frame)
-        # # Allow frame to display, and check if user wants to quit
-        # if cv2.waitKey(1) & 0xFF == ord('q'):
-        #     break
-
-    #         frame = video.frame()
-    #
-    #         if cv2.waitKey(1) & 0xFF == ord('q'):
-    #             break
-    #         pipe.stdin.write(frame.tostring())
-    # video.release()
-    # pipe.terminate()
+                # 视频流显示
+                # cv2.imshow('camera', frame)
+                # cv2.waitKey(1)
+                # 图片发送
+                tcp_client_socket.send(frame.tobytes())
+                # 等待回传信息，接收到才能进行下一次发送，具有同步功能
+                recv_data = tcp_client_socket.recv(1024)
+                # print('接收到回传信息:', recv_data.decode('gbk'))
+        except:
+            print "ERROR! Send Failure"
